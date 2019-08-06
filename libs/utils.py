@@ -14,7 +14,7 @@ import json
 import redis
 import aiohttp
 import asyncio
-import nest_asyncio
+# import nest_asyncio
 import tushare as TS
 
 # nest_asyncio.apply()
