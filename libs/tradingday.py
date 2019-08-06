@@ -20,7 +20,7 @@ import math
 import ctypes
 import tushare
 import numpy as np
-import asyncio
+# import asyncio
 
 tushare.set_token('aecca28adc0d5a7764b748ccd48bef923d81314ae47b4d44d51fce67')
 
@@ -440,8 +440,9 @@ class TradingDay:
             'http://stock.eastmoney.com/a/chstpyl.html'
         ]
 
-        loop = asyncio.get_event_loop()
-        results = loop.run_until_complete(Utils.fetch_all(urls))
+        # loop = asyncio.get_event_loop()
+        # results = loop.run_until_complete(Utils.fetch_all(urls))
+        results = Utils.fetch_all(urls)
 
         redis_keys = ['suspended_sz_stocks_update_time', 'suspended_sh_stocks_update_time']
         update_dates = [None, None]
@@ -476,7 +477,8 @@ class TradingDay:
         code_filter = Utils.code_filter
         
         for index, urls in enumerate(hrefs):
-            results = loop.run_until_complete(Utils.fetch_all(urls))
+            # results = loop.run_until_complete(Utils.fetch_all(urls))
+            results = Utils.fetch_all(urls)
             for result in results:
                 suspended = []
                 resumed = []

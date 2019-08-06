@@ -5,7 +5,7 @@ import os
 import math
 import json
 import random
-import asyncio
+# import asyncio
 import numpy as np
 import pandas as pd
 
@@ -123,8 +123,9 @@ class Sina:
     def market_snapshot(self, array=None):
         urls = [self.stock_api + stock_list for stock_list in self.code_lists]
 
-        loop = asyncio.get_event_loop()
-        result = loop.run_until_complete(Utils.fetch_all(urls))
+        # loop = asyncio.get_event_loop()
+        # result = loop.run_until_complete(Utils.fetch_all(urls))
+        result = Utils.fetch_all(urls)
         return self.parse_real_data(''.join(result), len(self.codes), array=array)
         
     def real(self, codes, group_count=None, array=None):
@@ -149,8 +150,9 @@ class Sina:
         
         urls = [self.stock_api + stock_list for stock_list in code_lists]
 
-        loop = asyncio.get_event_loop()
-        result = loop.run_until_complete(Utils.fetch_all(urls))
+        # loop = asyncio.get_event_loop()
+        # result = loop.run_until_complete(Utils.fetch_all(urls))
+        result = Utils.fetch_all(urls)
         return self.parse_real_data(''.join(result), len(self.codes), array=array)
 
     @staticmethod
@@ -165,8 +167,9 @@ class Sina:
             codes
         ))
 
-        loop = asyncio.get_event_loop()
-        results = loop.run_until_complete(Utils.fetch_all(urls))
+        # loop = asyncio.get_event_loop()
+        # results = loop.run_until_complete(Utils.fetch_all(urls))
+        results = Utils.fetch_all(urls)
 
         klines = list(map(
             lambda x: json.loads(re.sub('(\w+)\s?:\s?("?[^",]+"?,?)', "\"\g<1>\":\g<2>", x)),

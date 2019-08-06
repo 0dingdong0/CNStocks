@@ -6,6 +6,8 @@ from pytdx.params import TDXParams
 from pytdx.config.hosts import hq_hosts as tdx_hq_hosts
 from pytdx.reader import TdxDailyBarReader, TdxFileNotFoundException
 
+from threading import Thread
+
 import re
 import os
 import json
@@ -15,7 +17,7 @@ import asyncio
 import nest_asyncio
 import tushare as TS
 
-nest_asyncio.apply()
+# nest_asyncio.apply()
 
 class Utils:
 
@@ -166,17 +168,46 @@ class Utils:
             f.write(json.dumps(codes))
 
     @staticmethod
-    async def fetch(session, url):
+    async def async_fetch(session, url):
         async with session.get(url, headers=Utils.headers) as response:
             return await response.text()
         
-    @staticmethod
-    async def fetch_all(urls):
+    # @staticmethod
+    # async def fetch_all(urls):
         
-        assert urls
+    #     assert urls
 
-        tasks = []
+    #     tasks = []
+    #     async with aiohttp.ClientSession() as session:
+    #         for url in urls:
+    #             tasks.append(Utils.fetch(session, url))
+    #         return await asyncio.gather(*tasks)
+              
+    @staticmethod
+    async def async_fetch_all(urls):
         async with aiohttp.ClientSession() as session:
-            for url in urls:
-                tasks.append(Utils.fetch(session, url))
-            return await asyncio.gather(*tasks)
+            return await asyncio.gather(*[Utils.async_fetch(session, url) for url in urls])
+
+    @staticmethod
+    def fetch_all(urls):
+        loop = asyncio.get_event_loop_policy()._local._loop
+        if loop and loop.is_running():
+            print('using asyncio in a new thread')
+            thread = ThreadedAsyncio(target=Utils.async_fetch_all, args=(urls,))
+            thread.start()
+            return thread.join()
+        else:
+            print('using asyncio in current thread')
+            return asyncio.run(Utils.async_fetch_all(urls))
+
+class ThreadedAsyncio(Thread):
+    def __init__(self, group=None, target=None, name=None, args=(), kwargs={}):
+        Thread.__init__(self, group, target, name, args, kwargs)
+        self._return = None
+        
+    def run(self):
+        self._return = asyncio.run(self._target(*self._args, **self._kwargs))
+
+    def join(self, *args):
+        Thread.join(self, *args)
+        return self._return
