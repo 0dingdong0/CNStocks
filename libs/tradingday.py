@@ -291,8 +291,12 @@ class TradingDay:
         
         date = self.date if dt is None else dt
         
+        folder = os.path.join(os.getcwd(), 'hdf5')
+        if not os.path.exists(folder):
+            os.mkdir(folder)
+
         key = date.strftime('%Y%m%d')
-        file = os.path.join(os.getcwd(), 'hdf5', key + '.hdf5')
+        file = os.path.join(folder, key + '.hdf5')
         
         now = datetime.now()
         if now.strftime('%Y%m%d') == key and not force:
