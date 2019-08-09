@@ -1,2 +1,5 @@
 hdf5/*.hdf5
 notebooks/.ipynb_checkpoints
+cython/*.c
+cython/*.pyd
+cython/build/
