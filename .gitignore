@@ -1,5 +1,6 @@
 hdf5/*.hdf5
 notebooks/.ipynb_checkpoints
-cython/*.c
-cython/*.pyd
-cython/build/
+libs/cython/*.c
+libs/cython/*.pyd
+libs/cython/build
+libs/__pycache__
