@@ -8,7 +8,7 @@ ctypedef np.float32_t DTYPE_t
 @cython.boundscheck(False)
 @cython.cdivision
 @cython.wraparound(False)
-cpdef compute_stats(DTYPE_t[:,:] ms, DTYPE_t[:,:] fs, DTYPE_t[:,:] b, DTYPE_t[:,:] st, DTYPE_t[:,:] fs5p, Py_ssize_t index_fs):
+cpdef compute_stats(DTYPE_t[:,:] ms, DTYPE_t[:,:] fs, DTYPE_t[:,:] b, DTYPE_t[:,:] st, DTYPE_t[:,:] ms1p, DTYPE_t[:,:] fs5p, Py_ssize_t index_fs):
     
     # ms
     cdef Py_ssize_t idx_open = 0
@@ -30,8 +30,14 @@ cpdef compute_stats(DTYPE_t[:,:] ms, DTYPE_t[:,:] fs, DTYPE_t[:,:] b, DTYPE_t[:,
     cdef Py_ssize_t interval = min(index_fs - 9, 1)
     
     cdef list indices_zt = []
-    
     for i in range(rows):
+        
+        fs[i,0] = ms[i,2]
+        if index_fs == 0:
+            fs[i,1] = ms[i,5]
+        else:
+            fs[i,1] = ms[i,5] - ms1p[i,5]
+        
         if ms[i,idx_open]:
             st[i,idx_zf] = 100*(ms[i,idx_now]/ms[i,idx_close]-1)
 
@@ -44,4 +50,4 @@ cpdef compute_stats(DTYPE_t[:,:] ms, DTYPE_t[:,:] fs, DTYPE_t[:,:] b, DTYPE_t[:,
         if b[i,2] and ms[i,idx_turnover]:
             st[i,idx_lb] = ms[i,idx_turnover]/interval/b[i,2]
 
-    return None
+    return indices_zt
