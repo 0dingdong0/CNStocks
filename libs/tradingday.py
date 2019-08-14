@@ -163,14 +163,14 @@ class TradingDay:
         self.fsl = D3Array(fsl_check_points, codes, fsl_cols, fsl_interval, buffer=fsl_buffer)      # 分时 图
         self.fsl.data.fill(np.nan)
         
-        stat_cols = ['zhangfu', 'junjia', 'liangbi', 'zhangsu', 'fszb', 'fsto']
+        stat_cols = ['zhangfu', 'junjia', 'liangbi', 'zhangsu', 'tingban', 'fsto']
         stat_buffer_size = int(len(fsl_check_points)*len(codes)*len(stat_cols))
         stat_buffer = RawArray(ctypes.c_float, stat_buffer_size)
         self.buffers['stat'] = stat_buffer
         self.stat = D3Array(fsl_check_points, codes, stat_cols, fsl_interval, buffer=stat_buffer)      # 分时 统计
         self.stat.data.fill(np.nan)
         
-        basics_cols = ['zt_price', 'ma5vpm', 'ltgb']
+        basics_cols = ['zt_price', 'dt_price', 'ma5vpm', 'ltgb']
         basics_buffer_size = int(len(codes)*len(basics_cols))
         basics_buffer = RawArray(ctypes.c_float, basics_buffer_size)
         self.buffers['basics'] = basics_buffer
@@ -189,6 +189,7 @@ class TradingDay:
         
         idx = returns[0]['msl']
         self.basics.data[:, 0] = np.around(self.msl.data[idx, :, 1]*1.1, decimals=2)
+        self.basics.data[:, 1] = np.around(self.msl.data[idx, :, 1]*0.9, decimals=2)
         
         # set ma5vpm
         self.calculate_ma5vpm()
@@ -204,7 +205,7 @@ class TradingDay:
             if len(result) == 0:
                 continue
 
-            self.basics.data[index, 2] = result.iloc[0]
+            self.basics.data[index, 3] = result.iloc[0]
 
     def create_hq_processes(self):
         
@@ -626,11 +627,11 @@ class TradingDay:
                     count += 1
 
             if sum_vol != 0:
-                self.basics.data[index, 1] = sum_vol/(240*count)
+                self.basics.data[index, 2] = sum_vol/(240*count)
                 if TradingDay.redis.exists(redis_key):
                     TradingDay.redis.delete(redis_key)
             elif count == 0 and TradingDay.redis.exists(redis_key):
-                self.basics.data[index, 1] = float(TradingDay.redis.get(redis_key))
+                self.basics.data[index, 2] = float(TradingDay.redis.get(redis_key))
                 print('\t', index, symbol, 'was from redis')
             else:
                 print('\t', index, symbol, 'try online-loading from Sina', end=' ... ')
@@ -653,11 +654,11 @@ class TradingDay:
                                 break
 
                     if ma5vpm != 0:
-                        self.basics.data[index, 1] = ma5vpm
+                        self.basics.data[index, 2] = ma5vpm
                         TradingDay.redis.set(redis_key, ma5vpm)
                         print('done!')
                     elif sum_vol != 0:
-                        self.basics.data[index, 1] = sum_vol/(240*count)
+                        self.basics.data[index, 2] = sum_vol/(240*count)
                         TradingDay.redis.set(redis_key, ma5vpm)
                         print('done! new listed stock with', str(count), 'candles!')
                     else:

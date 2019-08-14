@@ -169,11 +169,11 @@ class HQ(Process):
         self.fsl = D3Array(fsl_check_points, self.codes, fsl_cols, fsl_interval, buffer=buffers['fsl'])      # 分时 图
         
         # 统计 数据
-        stat_cols = ['zhangfu', 'junjia', 'liangbi', 'zhangsu', 'fszb', 'fsto']
+        stat_cols = ['zhangfu', 'junjia', 'liangbi', 'zhangsu', 'tingban', 'fsto']
         self.stat = D3Array(fsl_check_points, self.codes, stat_cols, fsl_interval, buffer=buffers['stat'])      # 分时 统计
         
         # 基本 信息
-        basics_cols = ['zt_price', 'ma5vpm', 'ltgb']
+        basics_cols = ['zt_price', 'dt_prics', 'ma5vpm', 'ltgb']
         self.basics = D2Array(self.codes, basics_cols, buffer=buffers['basics'])
 
         if scope is None:

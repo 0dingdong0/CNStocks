@@ -21,7 +21,7 @@ cpdef compute_stats(DTYPE_t[:,:] ms, DTYPE_t[:,:] fs, DTYPE_t[:,:] b, DTYPE_t[:,
     cdef Py_ssize_t idx_jj = 1
     cdef Py_ssize_t idx_lb = 2
     cdef Py_ssize_t idx_zs = 3
-    cdef Py_ssize_t idx_zt = 4
+    cdef Py_ssize_t idx_tb = 4
     cdef Py_ssize_t idx_fsto = 5
     
     cdef Py_ssize_t rows = ms.shape[0]
@@ -29,7 +29,6 @@ cpdef compute_stats(DTYPE_t[:,:] ms, DTYPE_t[:,:] fs, DTYPE_t[:,:] b, DTYPE_t[:,
     
     cdef Py_ssize_t interval = min(index_fs - 9, 1)
     
-    cdef list indices_zt = []
     for i in range(rows):
         
         fs[i,0] = ms[i,idx_now]
@@ -45,9 +44,10 @@ cpdef compute_stats(DTYPE_t[:,:] ms, DTYPE_t[:,:] fs, DTYPE_t[:,:] b, DTYPE_t[:,
             st[i,idx_jj] = ms[i,idx_volume]/ms[i,idx_turnover]
             st[i,idx_zs] = 100*(ms[i,idx_now]/fs5p[i, 0]-1)
             if ms[i,idx_now] - b[i,0] > -0.0001:
-                indices_zt.append(i)
+                st[i,idx_tb] = 1
+            elif ms[i,idx_now] - b[i,1] < 0.0001:
+                st[i,idx_tb] = -1
 
         if b[i,2] and ms[i,idx_turnover]:
             st[i,idx_lb] = ms[i,idx_turnover]/interval/b[i,2]
-
-    return indices_zt
+            
