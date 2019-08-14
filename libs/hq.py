@@ -1,6 +1,7 @@
-from libs.array import D2Array, D3Array
 from libs.sina import Sina
 from libs.utils import Utils
+from libs.array import D2Array, D3Array
+from libs.cython.compute import compute_stats
 
 from timeit import default_timer as timer
 from multiprocessing import Process, Pipe
@@ -8,10 +9,10 @@ from multiprocessing import Process, Pipe
 from datetime import datetime
 from datetime import timedelta
 
-import numpy as np
-import traceback
 import os
 import h5py
+import traceback
+import numpy as np
 
 class HQ(Process):
     
@@ -95,21 +96,56 @@ class HQ(Process):
             dtime = datetime.now()
 
         msl_idx = self.msl.get_index(dtime)
-        msl_view = self.msl.data[msl_idx, self.scope[0]:self.scope[1], :]
+        ms = self.msl.data[msl_idx, self.scope[0]:self.scope[1], :]
 
-        self.sina.market_snapshot(array=msl_view)
+        self.sina.market_snapshot(array=ms)
 
         fsl_idx = self.fsl.get_index(dtime)
-        fsl_view = self.fsl.data[fsl_idx, self.scope[0]:self.scope[1], :]
-        fsl_view[:,0] = msl_view[:,2]
+        fs = self.fsl.data[fsl_idx, self.scope[0]:self.scope[1], :]
 
-        #上一分钟结束时的 快照表 的 idx
-        pmsl_idx = self.msl.get_index( dtime - timedelta(seconds=1) )
-        if pmsl_idx == 0:
-            fsl_view[:,1] = msl_view[:,5]
-        else:
-            pms_turnover = self.msl.data[msl_idx, self.scope[0]:self.scope[1], 5]
-            fsl_view[:,1] = msl_view[:,5] - pms_turnover
+        b = self.basics.data[self.scope[0]:self.scope[1], :]
+        st = self.stat.data[fsl_idx, self.scope[0]:self.scope[1], :]
+
+
+        t0925 = dtime.replace(hour=9, minute=25, second=0, microsecond=0)
+        t0930 = dtime.replace(hour=9, minute=30, second=0, microsecond=0)
+        t1130 = dtime.replace(hour=11, minute=30, second=0, microsecond=0)
+        t1300 = dtime.replace(hour=13, minute=0, second=0, microsecond=0)
+        t1500 = dtime.replace(hour=15, minute=0, second=0, microsecond=0)
+        if t0925<dtime<=t0930:
+            dtime = t0925
+        elif t1130<dtime<=t1300:
+            dtime = t1130
+        elif t1500<dtime:
+            dtime = t1500
+        pmdt = (dtime - timedelta(seconds=1)).replace(second=0, microsecond=0)
+        msl1p_idx = self.msl.get_index(pmdt)
+        ms1p = self.msl.data[msl1p_idx, self.scope[0]:self.scope[1], :]
+
+        fsl5p_idx = min(fsl_idx - 5, 9)
+        fs5p = self.fsl.data[fsl5p_idx, self.scope[0]:self.scope[1], :]
+
+        compute_stats(ms, fs, b, st, ms1p, fs5p, fsl_idx)
+        # # set fsl
+        # fsl_idx = self.fsl.get_index(dtime)
+        # fsl_view = self.fsl.data[fsl_idx, self.scope[0]:self.scope[1], :]
+        # # set price in fsl
+        # fsl_view[:,0] = msl_view[:,2]
+        # #set volume in fsl
+        # if fsl_idx == 0:
+        #     fsl_view[:,1] = msl_view[:,5]
+        # else:
+        #     #上一分钟结束时的 快照表 的 idx
+        #     pmdt = (dtime - timedelta(seconds=1)).replace(second=0, microsecond=0)
+        #     pmsl_idx = self.msl.get_index(pmdt)
+        #     #上一分钟结束时的 快照表 的 turnover
+        #     pms_turnover = self.msl.data[pmsl_idx, self.scope[0]:self.scope[1], 5]
+        #     fsl_view[:,1] = msl_view[:,5] - pms_turnover
+        # # if pmsl_idx == 0:
+        # #     fsl_view[:,1] = msl_view[:,5]
+        # # else:
+        # #     pms_turnover = self.msl.data[msl_idx, self.scope[0]:self.scope[1], 5]
+        # #     fsl_view[:,1] = msl_view[:,5] - pms_turnover
         return {'msl':msl_idx, 'fsl':fsl_idx}
 
     def prepare(self):

@@ -14,9 +14,10 @@ from pyquery import PyQuery as pq
 import os
 import sys
 import h5py
-import redis
 import json
 import math
+import time
+import redis
 import ctypes
 import tushare
 import numpy as np
@@ -229,6 +230,7 @@ class TradingDay:
     def start_hq_processes(self):
         for hq in self.hq_processes:
             hq.start()
+            time.sleep(1)
             
         self.send_processes_message(self.hq_pipes, {
             'type':'function',
@@ -297,7 +299,6 @@ class TradingDay:
 
         key = date.strftime('%Y%m%d')
         file = os.path.join(folder, key + '.hdf5')
-        
         now = datetime.now()
         if now.strftime('%Y%m%d') == key and not force:
             dt1 = now.replace(hour=9, minute=0, second=0, microsecond=0)
@@ -405,7 +406,8 @@ class TradingDay:
             self.date = dt.replace(hour=0, minute=0, second=0, microsecond=0)
         else:
             self.date = datetime.strptime(dt, "%Y%m%d")
-            
+
+        print('load from file:', file)    
         with h5py.File(file, "a") as f:
             
             codes = np.char.decode(f[u'codes'], 'utf-8')

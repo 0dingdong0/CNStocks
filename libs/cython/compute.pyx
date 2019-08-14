@@ -32,11 +32,11 @@ cpdef compute_stats(DTYPE_t[:,:] ms, DTYPE_t[:,:] fs, DTYPE_t[:,:] b, DTYPE_t[:,
     cdef list indices_zt = []
     for i in range(rows):
         
-        fs[i,0] = ms[i,2]
+        fs[i,0] = ms[i,idx_now]
         if index_fs == 0:
-            fs[i,1] = ms[i,5]
+            fs[i,1] = ms[i,idx_turnover]
         else:
-            fs[i,1] = ms[i,5] - ms1p[i,5]
+            fs[i,1] = ms[i,idx_turnover] - ms1p[i,idx_turnover]
         
         if ms[i,idx_open]:
             st[i,idx_zf] = 100*(ms[i,idx_now]/ms[i,idx_close]-1)
