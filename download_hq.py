@@ -17,7 +17,7 @@ if __name__=="__main__":
         root = 'C:\\tdx\\tdx_7.46'
         trading_day = TradingDay(tdx_root=root)
         trading_day.reset()
-        
+
         if trading_day.is_today_trading_day:
             
             msg = {'type':'function', 'function': 'check', 'args':[], 'kwargs':{'dt':now}}
@@ -26,4 +26,3 @@ if __name__=="__main__":
                 
         trading_day.stop_hq_processes()
         trading_day.stop_assist_process()
-
