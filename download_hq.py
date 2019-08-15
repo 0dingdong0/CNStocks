@@ -16,7 +16,8 @@ if __name__=="__main__":
     if not os.path.exists(f):
         root = 'C:\\tdx\\tdx_7.46'
         trading_day = TradingDay(tdx_root=root)
-
+        trading_day.reset()
+        
         if trading_day.is_today_trading_day:
             
             msg = {'type':'function', 'function': 'check', 'args':[], 'kwargs':{'dt':now}}

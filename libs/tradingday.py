@@ -53,10 +53,10 @@ class TradingDay:
     def __init__(self, tdx_root='', concurrency=8, sub_group_count=2):
         self.concurrency = concurrency
         self.sub_group_count = sub_group_count
-        TradingDay.tdx = TDX(tdx_root)
-        self.reset()
+        self.tdx_root = tdx_root
             
     def reset(self):
+        TradingDay.tdx = TDX(self.tdx_root)
         now = datetime.now()
         ed = now.strftime('%Y%m%d')
         sd = (now - timedelta(days=30)).strftime('%Y%m%d')

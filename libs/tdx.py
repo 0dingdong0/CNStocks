@@ -1,9 +1,6 @@
-import os
-import time
-import math
-import redis
-import platform
-import subprocess
+
+from libs.utils import Utils
+from libs.utils import ThreadedAsyncio
 
 from random import randrange
 from pytdx.hq import TdxHq_API
@@ -11,85 +8,83 @@ from pytdx.params import TDXParams
 from pytdx.config.hosts import hq_hosts as tdx_hq_hosts
 from pytdx.reader import TdxDailyBarReader, TdxFileNotFoundException
 
-from libs.utils import Utils
+import os
+import json
+import time
+import math
+import platform
+import subprocess
+import asyncio
+import aioping
 
 class TDX:
     
+    HQ_HOSTS_FILE = os.path.join(os.getcwd(), "tdx_hq_hosts.json")
+    
     def __init__(self, root):
         
-        self.redis = redis.Redis(host='127.0.0.1', port=6379, decode_responses=True)
         self.root = root
-        
         self.tdx = TdxHq_API(heartbeat=True, auto_retry=True)
-        self.tdx_connect_to_server()
-        self.tdx_hq_hosts = tdx_hq_hosts
+        self.connect_to_server()
     
-    def ping(self, host):
+    @staticmethod
+    async def ping(host):
+        timeout = 999999
+        try:
+            delay = await aioping.ping(host[1]) * 1000
+            print('ping host['+host[0]+', '+str(host[1])+':'+str(host[2])+'] ... ... ', round(delay,2), 'ms')
+        except TimeoutError:
+            delay = timeout
+            print('ping host['+host[0]+', '+str(host[1])+':'+str(host[2])+'] ... ... timeout')
+        return delay
     
-        param = '-n' if platform.system().lower()=='windows' else '-c'
-        command = ['ping', param, '1', host]
-
-        start = time.time()
-        subprocess.call(command)
-        end = time.time()
-        return (end - start)*1000
+    @staticmethod
+    async def test_hosts(hosts):
+        return await asyncio.gather(*[TDX.ping(host) for host in hosts])
     
-    def test_hosts(self):
+    @staticmethod
+    def find_available_hosts(hq_hosts=tdx_hq_hosts):
+        thread = ThreadedAsyncio(target=TDX.test_hosts, args=(hq_hosts,))
+        thread.start()
+        results = thread.join()
+        
         hosts = []
-        for idx, host in enumerate(tdx_hq_hosts):
-            print(str(idx+1)+'/'+str(len(tdx_hq_hosts))+' ping host:', host, end=", ")
-            time = self.ping(host[1])
-            print(time, 'ms')
+        for idx, host in enumerate(hq_hosts):
+            if results[idx] > 500:
+                continue
             host = [*host]
-            host.append(time)
+            if len(host) == 3:
+                host.append(results[idx])
+            else:
+                host[-1] = results[idx]
             hosts.append(host)
-
+            
         hosts.sort(key=lambda x : x[3])
-
-        key = 'tdx_hosts'
-        self.redis.delete(key)
-        for host in hosts:
-            if host[3] > 100:
-                break
-            self.redis.rpush(key, host[1]+':'+str(host[2]))
+        with open(TDX.HQ_HOSTS_FILE, "w") as f:
+            f.write(json.dumps(hosts))
+            
         return hosts
     
-    def tdx_connect_to_server(self):
-        key = 'tdx_hosts'
+    def connect_to_server(self):
         
-        if self.redis.exists("tdx_hosts") == 0:
+        if not os.path.exists(TDX.HQ_HOSTS_FILE):
             print('use default server: ', '202.108.253.130:7709')
-            print('please run test_hosts to test out the fastest servers')
+            print('please run TDX.find_available_hosts to test out the fastest servers')
             self.tdx.connect('202.108.253.130', 7709)
+            
         else:
-            idx = -1
-            selected = None
-            min_time = None
-            while True:
-                idx += 1
-                host = self.redis.lindex(key, idx)
-                if host is None:
-                    if selected is None:
-                        print('use default server: ', '202.108.253.130:7709')
-                        print('please run test_tdx_hosts to test out the fastest servers')
-                        selected = ('202.108.253.130', 7709)
-                    break
-
-                host = host.split(':')
-                print(host, end=", ")
+            with open(TDX.HQ_HOSTS_FILE) as f:
+                hosts = json.load(f)
+                
+            hosts = TDX.find_available_hosts(hq_hosts=hosts)
+            for host in hosts:
                 try:
-                    time = self.ping(host[0])
+                    print('try to connect the fastest host:', host)
+                    self.tdx.connect(host[1], host[2])
+                    break
                 except Exception as e:
-                    continue
-                print('used', round(time,2), 'ms')
-
-                if min_time is None or min_time > time:
-                    min_time = time
-                    selected = (host[0], int(host[1]))
-
-            if min_time:
-                print('selected:', selected, round(min_time, 2), 'ms')
-            self.tdx.connect(*selected)
+                    print(str(e))
+                    print('retry with next host')
             
     def get_tdx_gainian(self):
 
